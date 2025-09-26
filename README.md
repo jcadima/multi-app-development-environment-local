@@ -12,4 +12,4 @@ This environment is designed for local development and makes it easy to manage m
 - ⚡ Queue worker support for background jobs  
 - 🔄 Auto-restart and persistent volumes  
 
-Fevelopers who want a simple, reproducible local dev environment for multi-app projects.
+For developers who want a simple, reproducible local dev environment for multi-app projects.
