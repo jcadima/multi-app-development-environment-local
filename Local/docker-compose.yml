@@ -1,0 +1,182 @@
+services:
+  main-admin:
+    build:
+      args:
+        user: admin
+        uid: 1000
+      context: ./main
+      dockerfile: Dockerfile
+    container_name: main-admin
+    restart: unless-stopped
+    working_dir: /var/www/main
+    volumes:
+      - ./main:/var/www/main
+    networks:
+      - main-net
+
+    # Shared NGINX
+  main-nginx:
+    image: nginx:1.23-alpine
+    container_name: main-nginx
+    restart: unless-stopped
+    ports:
+      - "8092:80"
+    volumes:
+      - ./main:/var/www/main
+      - ./subdomain1:/var/www/subdomain1
+      - ./subdomain2:/var/www/subdomain2
+      - ./subdomain3:/var/www/subdomain3
+      - ./docker-compose/nginx/http.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - main-net
+
+  main-queue-worker:
+    build:
+      args:
+        user: admin
+        uid: 1000
+      context: ./main
+      dockerfile: Dockerfile
+    container_name: main-queue-worker
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./main:/var/www
+    networks:
+      - main-net
+    depends_on:
+      - main-admin
+    command: php artisan queue:work --tries=3 --sleep=3
+
+  main-db:
+    image: mysql:8-oracle
+    container_name: main-db
+    restart: unless-stopped
+    env_file: ./main/.env
+    ports:
+      - "3312:3306"
+    environment:
+      MYSQL_DATABASE: "${MAIN_DB_DATABASE}"
+      MYSQL_USER: "${MAIN_DB_USERNAME}"
+      MYSQL_PASSWORD: "${MAIN_DB_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${MAIN_DB_PASSWORD}"
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - main-db-data:/var/lib/mysql
+    networks:
+      - main-net
+
+
+  ##### Subdomain App (subdomain1.main.dev) #####
+  subdomain1-admin:
+    build:
+      args:
+        user: admin
+        uid: 1000
+      context: ./subdomain1
+      dockerfile: Dockerfile
+    container_name: subdomain1-admin
+    working_dir: /var/www/subdomain1
+    volumes:
+      - ./subdomain1:/var/www/subdomain1
+    networks:
+      - main-net
+
+  subdomain1-db:
+    image: mysql:8-oracle
+    container_name: subdomain1-db
+    restart: unless-stopped
+    env_file: ./subdomain1/.env
+    ports:
+      - "3313:3306" 
+    environment:
+      MYSQL_DATABASE: "${SUBDOMAIN1_DB_DATABASE}"
+      MYSQL_USER: "${SUBDOMAIN1_DB_USERNAME}"
+      MYSQL_PASSWORD: "${SUBDOMAIN1_DB_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${SUBDOMAIN1_DB_PASSWORD}"
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - subdomain1-db-data:/var/lib/mysql
+    networks:
+      - main-net
+
+  ##### Subdomain App (subdomain2.main.dev) #####
+  subdomain2-admin:
+    build:
+      args:
+        user: admin
+        uid: 1000
+      context:  "${PWD}/subdomain2"
+      dockerfile: Dockerfile
+    container_name: subdomain2-admin
+    working_dir: /var/www/subdomain2
+    volumes:
+      - ./subdomain2:/var/www/subdomain2
+    networks:
+      - main-net
+
+  subdomain2-db:
+    image: mysql:8-oracle
+    container_name: subdomain2-db
+    restart: unless-stopped
+    env_file: ./subdomain2/.env
+    ports:
+      - "3314:3306" 
+    environment:
+      MYSQL_DATABASE: "${SUBDOMAIN2_DB_DATABASE}"
+      MYSQL_USER: "${SUBDOMAIN2_DB_USERNAME}"
+      MYSQL_PASSWORD: "${SUBDOMAIN2_DB_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${SUBDOMAIN2_DB_PASSWORD}"
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - subdomain2-db-data:/var/lib/mysql
+    networks:
+      - main-net
+
+
+  ##### Subdomain App (subdomain3.main.dev) #####
+  subdomain3-admin:
+    build:
+      args:
+        user: admin
+        uid: 1000
+      context: ./subdomain3
+      dockerfile: Dockerfile
+    container_name: subdomain3-admin
+    working_dir: /var/www/subdomain3
+    volumes:
+      - ./subdomain3:/var/www/subdomain3
+    networks:
+      - main-net
+
+  subdomain3-db:
+    image: mysql:8-oracle
+    container_name: subdomain3-db
+    restart: unless-stopped
+    env_file: ./subdomain3/.env
+    ports:
+      - "3315:3306" 
+    environment:
+      MYSQL_DATABASE: "${SUBDOMAIN3_DB_DATABASE}"
+      MYSQL_USER: "${SUBDOMAIN3_DB_USERNAME}"
+      MYSQL_PASSWORD: "${SUBDOMAIN3_DB_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${SUBDOMAIN3_DB_PASSWORD}"
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - subdomain3-db-data:/var/lib/mysql
+    networks:
+      - main-net
+
+volumes:
+  main-db-data:
+  subdomain1-db-data:
+  subdomain2-db-data: 
+  subdomain3-db-data:
+
+networks:
+  main-net:
+    driver: bridge
